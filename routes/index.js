@@ -11,6 +11,8 @@ var verify = require ('./verify.js');
 router.post('/signup', signup);
 router.get('/signup', verify.verifyToken, verify.linkToUserDB);
 
+//TODO: each user will have its own path for clips based on UserID
+router.post('v1/user/clips', clips.UploadNewClip);
 router.get('/v1/user/clips', clips.getAllUserClips);
 
 //router.post('/login', auth);

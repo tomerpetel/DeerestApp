@@ -15,20 +15,20 @@ var dbClip = mongoose.createConnection('mongodb://127.0.0.1:27017/deeClip', func
 var Schema = mongoose.Schema;
 
 var mySchema = new Schema({
-    fullname: String,
+    nameOfClip: String,
     thumbnail: String,
-    username: { type: String, required: true, unique: true },
     views: {type: Number, default: 0},
     length: Number,
     qrCode: String,
     link: String,
-    size: Number,
+    sizeInMB: Number,
+    dateTaken: { type: Date, default: Date.now },
     uploadDone: {type: Boolean, default: false},
     dateUploaded: { type: Date, default: Date.now },
     codec: String,
     resolution: String,
-    public: {type: Boolean, default: false}, //for sharing your clip for public view
-    type: { type: String, enum: ['Wedding', 'Birthday', 'Other Special Occasion']},
+   // public: {type: Boolean, default: false}, //for sharing your clip for public view
+   // type: { type: String, enum: ['Wedding', 'Birthday', 'Other Special Occasion']},
 });
 
 module.exports = dbClip.model('clipModel',mySchema);

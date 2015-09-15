@@ -48,14 +48,26 @@ module.exports = {
         deeTokenDB.findOne({"tokenObj.token": req.query.token}, function (err, post) {
             req.usrInfo = post;
             if (err) return next(err);
-            if (post) {
+            if (post) { // Email verification passed - need to generate a permanent token
+                req.tokenObj = genToken(req.usrInfo.fullname, req.usrInfo.email);
                 if (post.email == decoded.email && post.linked) {
-
+                    //Existing user - there is a record in UserDB
                     post.activated = true;
                     post.dateActivated = Date.now;
                     post.save();
+                    //TODO: need to see if post.save() above is working
                     console.log("You are an existing user, no need to create a record in UserDB");
-                    //TODO: need to save the document here too
+                    // Updating permanent token in UserDB for an existing user
+                    deeUserDB.findByIdAndUpdate(post.userObjId, {
+                        "tokenObj":{
+                            token: req.tokenObj.token,
+                            expires : req.tokenObj.expires
+                                }
+                        },function (err, res){
+                            if (err) next (err);
+                            console.log (res);
+                        }
+                    );
                     next();
                 }
 
@@ -68,18 +80,23 @@ module.exports = {
                             "udid": post.udid,
                             "osversion": post.osversion,
                             "ostype": post.ostype,
-                            "deeversion": post.deeversion
+                            "deeversion": post.deeversion,
+                            "tokenObj":{
+                                token: req.tokenObj.token,
+                                expires : req.tokenObj.expires
+                            }
                         },
                         function (err, dbres) {
                             if (err) next(err);
                             console.log("New User record id " + dbres._id);
                             // Linking between the TokenDB record and UserDB record
                             req.drest = {
-                                _id: post._id,
+                                _id: post._id, //TokenDB ID record
                                 activated: true,
                                 linked: true,
-                                userObjId: dbres._id
-                            }
+                                userObjId: dbres._id // UserDB ID record
+                            };
+
                             next();
                         });
 
@@ -97,7 +114,7 @@ module.exports = {
     },
     linkToUserDB: function (req, res, next) {
         if (req.drest) {
-
+        //Record not empty = new User
         deeTokenDB.findByIdAndUpdate(req.drest._id, {
             "activated": req.drest.activated,
             "dateActivated": Date.now(),
@@ -108,7 +125,7 @@ module.exports = {
             console.log(dbres);
         });
     }
-        res.json(genToken(req.usrInfo.fullname, req.usrInfo.email));
+        res.json(req.tokenObj);
     }
 };
 
@@ -116,13 +133,13 @@ function genToken(dbUser, dbEmail) {
     var expires = expiresIn(365); // 1 Year
     var token = jwt.encode({
         exp: expires,
-        username: dbUser,
+        fullname: dbUser,
         email: dbEmail
     }, require('../config/jwtSec')());
     return {
         token: token,
         expires: expires,
-        username: dbUser,
+        fullname: dbUser,
         email: dbEmail
     };
 }
